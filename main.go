@@ -198,6 +198,10 @@ func getDescendantProjects(ctx context.Context, folder string) ([]string, error)
 			return nil, err
 		}
 
+		if p.State == resourcemanagerpb.Project_DELETE_REQUESTED {
+			// Skip projects pending deletion
+			continue
+		}
 		if _, ok := folders[p.Parent]; !ok {
 			// Project is not a (grand-)child of search root
 			continue
