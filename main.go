@@ -53,8 +53,8 @@ func main() {
 						Name: "gcp",
 						Config: map[string]string{
 							"cmd-path":   "gke-gcloud-auth-plugin",
-							"expiry-key": "{.credential.token_expiry}",
-							"token-key":  "{.credential.access_token}",
+							"expiry-key": "{.status.expirationTimestamp}",
+							"token-key":  "{.status.token}",
 						},
 					},
 				},
