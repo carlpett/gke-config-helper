@@ -50,12 +50,11 @@ func main() {
 				Name: "google-auth",
 				User: userAuth{
 					AuthProvider: authProvider{
-						Name:   "gcp",
+						Name: "gcp",
 						Config: map[string]string{
-					        "cmd-args": "config config-helper --format=json",
-        					"cmd-path": "gcloud",
-        					"expiry-key": "{.credential.token_expiry}",
-        					"token-key": "{.credential.access_token}",
+							"cmd-path":   "gke-gcloud-auth-plugin",
+							"expiry-key": "{.credential.token_expiry}",
+							"token-key":  "{.credential.access_token}",
 						},
 					},
 				},
