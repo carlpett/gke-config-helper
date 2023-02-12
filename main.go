@@ -22,6 +22,7 @@ func main() {
 	searchRoot := kingpin.Flag("search-root", "Folder under which to list projects").String()
 	contextNameTemplate := kingpin.Flag("context-name-template", "Template to construct context name").
 		Default("{{ .ProjectId }}-{{ .Name }}").String()
+	useBuiltinAuth := kingpin.Flag("use-legacy-builtin-auth", "Use the legacy in-tree auth provider. Only works on clusters <1.26").Bool()
 	kingpin.Parse()
 	tpl, err := template.New("").Funcs(sprig.TxtFuncMap()).Parse(*contextNameTemplate)
 	if err != nil {
@@ -42,22 +43,33 @@ func main() {
 		os.Exit(1)
 	}
 
+	var auth userAuth
+	if *useBuiltinAuth {
+		auth.AuthProvider = buildinAuthProvider{
+			Name: "gcp",
+			Config: map[string]string{
+				"cmd-args":   "config config-helper --format=json",
+				"cmd-path":   "gcloud",
+				"expiry-key": "{.credential.token_expiry}",
+				"token-key":  "{.credential.access_token}",
+			},
+		}
+	} else {
+		auth.Exec = execAuthProvider{
+			APIVersion:         "client.authentication.k8s.io/v1beta1",
+			Command:            "gke-gcloud-auth-plugin",
+			ProvideClusterInfo: true,
+			InstallHint:        "Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/blog/products/containers-kubernetes/kubectl-auth-changes-in-gke",
+		}
+	}
+
 	cfg := kubeConfig{
 		Clusters: make([]clusterConfigData, 0, len(clusters)),
 		Contexts: make([]contextConfigData, 0, len(clusters)),
 		Users: []userConfigData{
 			{
 				Name: "google-auth",
-				User: userAuth{
-					AuthProvider: authProvider{
-						Name: "gcp",
-						Config: map[string]string{
-							"cmd-path":   "gke-gcloud-auth-plugin",
-							"expiry-key": "{.status.expirationTimestamp}",
-							"token-key":  "{.status.token}",
-						},
-					},
-				},
+				User: auth,
 			},
 		},
 	}
@@ -116,11 +128,18 @@ type userConfigData struct {
 	User userAuth `yaml:"user"`
 }
 type userAuth struct {
-	AuthProvider authProvider `yaml:"auth-provider"`
+	AuthProvider buildinAuthProvider `yaml:"auth-provider,omitempty"`
+	Exec         execAuthProvider    `yaml:"exec,omitempty"`
 }
-type authProvider struct {
+type buildinAuthProvider struct {
 	Name   string            `yaml:"name"`
 	Config map[string]string `yaml:"config"`
+}
+type execAuthProvider struct {
+	APIVersion         string `yaml:"apiVersion"`
+	Command            string `yaml:"command"`
+	ProvideClusterInfo bool   `yaml:"provideClusterInfo"`
+	InstallHint        string `yaml:"installHint"`
 }
 
 func getDescendantProjects(ctx context.Context, folder string) ([]string, error) {
