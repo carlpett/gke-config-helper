@@ -2,6 +2,17 @@
 
 A small utility to generate a `kubectl` configuration file for all clusters you have access to in GKE.
 
+# Installation
+
+1. Download latest [release](github.com/carlpett/gke-config-helper)
+2. Rename to file to `gke-config-helper`
+3. Convert into binary `chmod +x gke-config-helper`
+
+Optionally you could move it into a `/bin/` or add it to the environment `$PATH`
+
+
+### M1 chip
+
 # Usage
 
 ```shell
