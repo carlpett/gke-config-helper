@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"google.golang.org/api/iterator"
 	resourcemanagerpb "google.golang.org/genproto/googleapis/cloud/resourcemanager/v3"
 	containerpb "google.golang.org/genproto/googleapis/container/v1"
+	"github.com/googleapis/gax-go/v2/apierror"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"gopkg.in/yaml.v3"
 )
@@ -251,6 +253,11 @@ func getGKEClusters(ctx context.Context, projects []string) ([]clusterInfo, erro
 			Parent: fmt.Sprintf("%s/locations/-", p),
 		})
 		if err != nil {
+			var ae *apierror.APIError
+			if errors.As(err, &ae) && ae.Reason() == "SERVICE_DISABLED" {
+				// Ignore projects where GKE is not enabled
+				continue
+			}
 			return nil, err
 		}
 		for _, c := range r.Clusters {
